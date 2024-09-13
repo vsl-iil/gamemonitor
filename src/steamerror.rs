@@ -1,9 +1,9 @@
 use core::fmt;
-use std::{error, fmt::write, num::ParseIntError};
+use std::{error, num::ParseIntError};
 
 pub type Result<T> = std::result::Result<T, GeneralError>;
 pub type SteamResult<T> = std::result::Result<T, SteamError>;
-pub type ArgumentResult<T> = std::result::Result<T, ArgumentError>;
+// pub type ArgumentResult<T> = std::result::Result<T, ArgumentError>;
 
 #[derive(Debug)]
 pub enum SteamError {
@@ -77,17 +77,17 @@ impl From<ParseIntError> for ArgumentError {
 
 #[derive(Debug)]
 pub enum GeneralError {
-    SteamError(SteamError),
-    ArgumentError(ArgumentError),
-    TelegramError(frankenstein::Error),
+    Steam(SteamError),
+    Argument(ArgumentError),
+    Telegram(frankenstein::Error),
 }
 
 impl fmt::Display for GeneralError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
-            GeneralError::SteamError(..)    => write!(f, "Steam error"),
-            GeneralError::ArgumentError(..) => write!(f, "Argument error"),
-            GeneralError::TelegramError(..) => write!(f, "Telegram error"),
+            GeneralError::Steam(..)    => write!(f, "Steam error"),
+            GeneralError::Argument(..) => write!(f, "Argument error"),
+            GeneralError::Telegram(..) => write!(f, "Telegram error"),
         }
     }
 }
@@ -95,27 +95,27 @@ impl fmt::Display for GeneralError {
 impl error::Error for GeneralError {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match *self {
-            GeneralError::SteamError(ref se) => Some(se),
-            GeneralError::ArgumentError(ref ae) => Some(ae),
-            GeneralError::TelegramError(ref te) => Some(te),
+            GeneralError::Steam(ref se) => Some(se),
+            GeneralError::Argument(ref ae) => Some(ae),
+            GeneralError::Telegram(ref te) => Some(te),
         }
     }
 }
 
 impl From<SteamError> for GeneralError {
     fn from(value: SteamError) -> Self {
-        GeneralError::SteamError(value)
+        GeneralError::Steam(value)
     }
 }
 
 impl From<ArgumentError> for GeneralError {
     fn from(value: ArgumentError) -> Self {
-        GeneralError::ArgumentError(value)
+        GeneralError::Argument(value)
     }
 }
 
 impl From<frankenstein::Error> for GeneralError {
     fn from(value: frankenstein::Error) -> Self {
-        GeneralError::TelegramError(value)
+        GeneralError::Telegram(value)
     }
 }

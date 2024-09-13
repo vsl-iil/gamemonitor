@@ -17,9 +17,7 @@ impl TelegramSender {
                           .chat_id(self.chat_id)
                           .text(message);
 
-        let send_params: SendMessageParams;
-        // if let Some(markup) = reply_markup {
-        send_params = send_params_builder.build();
+        let send_params: SendMessageParams = send_params_builder.build();
 
         self.api.send_message(&send_params)
     }

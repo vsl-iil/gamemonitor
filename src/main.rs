@@ -4,7 +4,6 @@ mod telegram;
 use std::{sync::{atomic::AtomicBool, Arc}, time::Duration};
 
 use clap_derive::ValueEnum;
-use reqwest;
 use serde::Deserialize;
 use clap::Parser;
 use steamerror::ArgumentError;
@@ -97,8 +96,8 @@ async fn main() -> steamerror::Result<()> {
                                                            .parse().expect("Invalid chat id.")
                     );
 
-                    dbg!(std::env::var("TELEGRAM_API_TOKEN"));
-                    dbg!(std::env::var("TELEGRAM_CHAT_ID").unwrap().parse::<i64>());
+                    dbg!(std::env::var("TELEGRAM_API_TOKEN").unwrap());
+                    dbg!(std::env::var("TELEGRAM_CHAT_ID").unwrap().parse::<i64>().unwrap());
 
                     tg.send_message(msg)?;
                 },
