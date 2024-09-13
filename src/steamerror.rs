@@ -1,0 +1,121 @@
+use core::fmt;
+use std::{error, fmt::write, num::ParseIntError};
+
+pub type Result<T> = std::result::Result<T, GeneralError>;
+pub type SteamResult<T> = std::result::Result<T, SteamError>;
+pub type ArgumentResult<T> = std::result::Result<T, ArgumentError>;
+
+#[derive(Debug)]
+pub enum SteamError {
+    RequestError(reqwest::Error),
+    SerdeError(serde_json::Error),
+}
+
+impl fmt::Display for SteamError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match *self {
+            SteamError::RequestError(..) => write!(f, "Request to Steam Web API failed"),
+            SteamError::SerdeError(..)   => write!(f, "Parsing Steam Web API answer failed"),
+        }
+    }
+}
+
+
+impl error::Error for SteamError {
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+        match *self {
+            SteamError::RequestError(ref re) => Some(re),
+            SteamError::SerdeError(ref se)   => Some(se),
+        }
+    }
+}
+
+
+impl From<reqwest::Error> for SteamError {
+    fn from(value: reqwest::Error) -> Self {
+        SteamError::RequestError(value)
+    }
+}
+
+impl From<serde_json::Error> for SteamError {
+    fn from(value: serde_json::Error) -> Self {
+        SteamError::SerdeError(value)
+    }
+}
+
+
+#[derive(Debug)]
+pub enum ArgumentError {
+    ParseError(ParseIntError),
+    UnitError,
+}
+
+impl fmt::Display for ArgumentError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match *self {
+            ArgumentError::ParseError(..) => write!(f, "Parsing user input failed"),
+            ArgumentError::UnitError      => write!(f, "Wrong delay unit specified"),
+        }
+    }
+}
+
+impl error::Error for ArgumentError {
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+        match *self {
+            ArgumentError::UnitError => None,
+            ArgumentError::ParseError(ref pe) => Some(pe),
+        }
+    }
+}
+
+impl From<ParseIntError> for ArgumentError {
+    fn from(value: ParseIntError) -> Self {
+        ArgumentError::ParseError(value)
+    }
+}
+
+
+#[derive(Debug)]
+pub enum GeneralError {
+    SteamError(SteamError),
+    ArgumentError(ArgumentError),
+    TelegramError(frankenstein::Error),
+}
+
+impl fmt::Display for GeneralError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match *self {
+            GeneralError::SteamError(..)    => write!(f, "Steam error"),
+            GeneralError::ArgumentError(..) => write!(f, "Argument error"),
+            GeneralError::TelegramError(..) => write!(f, "Telegram error"),
+        }
+    }
+}
+
+impl error::Error for GeneralError {
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+        match *self {
+            GeneralError::SteamError(ref se) => Some(se),
+            GeneralError::ArgumentError(ref ae) => Some(ae),
+            GeneralError::TelegramError(ref te) => Some(te),
+        }
+    }
+}
+
+impl From<SteamError> for GeneralError {
+    fn from(value: SteamError) -> Self {
+        GeneralError::SteamError(value)
+    }
+}
+
+impl From<ArgumentError> for GeneralError {
+    fn from(value: ArgumentError) -> Self {
+        GeneralError::ArgumentError(value)
+    }
+}
+
+impl From<frankenstein::Error> for GeneralError {
+    fn from(value: frankenstein::Error) -> Self {
+        GeneralError::TelegramError(value)
+    }
+}
