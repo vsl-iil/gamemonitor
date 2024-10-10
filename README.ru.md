@@ -1,13 +1,13 @@
 Gamemonitor
 ===========
 
-[![ru](https://img.shields.io/badge/lang-ru-red)](https://github.com/vsl-iil/gamemonitor/blob/master/README.ru.md)
-[![en](https://img.shields.io/badge/lang-en-black)](https://github.com/vsl-iil/gamemonitor/blob/master/README.md)
+[![ru](https://img.shields.io/badge/lang-ru-black)](https://github.com/vsl-iil/gamemonitor/blob/master/README.ru.md)
+[![en](https://img.shields.io/badge/lang-en-red)](https://github.com/vsl-iil/gamemonitor/blob/master/README.md)
 
 
-Monitors and notifies about Steam game discounts.
+Отслеживает и сообщает о скидках на игры в Steam.
 
-## Usage
+## Использование
 
 ```
 Usage: gamemonitor [OPTIONS] --appid <APPID> --threshold <THRESHOLD> --delay <DELAY> [FEEDTYPE]
@@ -25,42 +25,40 @@ Options:
 ```
 
 
-## Running (Docker)
+## Запуск (Docker)
 
-Build a container:
+Сборка контейнера:
 
 ```bash
 docker build . -t gamemonitor
 ```
 
 
-Launch it with:
+Запуск:
 
 ```bash
 docker run -d --restart=unless-stopped --env-file=.env gamemonitor
 ```
 
 
-`--env-file` argument is optional. If you choose `telegram` notify 
-method, then the project directory should also contain an `.env` 
-file with the following enviroment variables specified:
+При выборе способа уведомления `telegram` в директории проекта 
+также должен находится файл `.env` со следующими переменными окружения:
 
 ```bash
-TELEGRAM_API_TOKEN=<Telegram bot token>
-TELEGRAM_CHAT_ID=<ID of a chat with the bot>
+TELEGRAM_API_TOKEN=<токен Telegram-бота для уведомлений>
+TELEGRAM_CHAT_ID=<ID чата с ботом>
 ```
 
 
-## Building
+## Сборка
 
-Build from source:
+Сборка из исходников:
 
 ```bash
 cargo build --release
 ```
 
-
-Launch it with:
+Запуск:
 ```bash
 cargo run
 ```
