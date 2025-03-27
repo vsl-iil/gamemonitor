@@ -162,12 +162,12 @@ fn suffix_to_secs(argtime: &str) -> Result<Duration, ArgumentError> {
         "m"    => value.parse::<u64>()? * 60,
         "h"    => value.parse::<u64>()? * 3600,
         "d"    => value.parse::<u64>()? * 3600 * 24,
-        _      => return Err(ArgumentError::UnitError),
+        _      => return Err(ArgumentError::Unit),
     };
 
     if seconds >= 2 {
         Ok(Duration::from_secs(seconds))
     } else {
-        Err(ArgumentError::DelayError)
+        Err(ArgumentError::Delay)
     }
 }
