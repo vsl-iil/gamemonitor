@@ -8,6 +8,7 @@ use serde::Deserialize;
 use clap::Parser;
 use steamerror::ArgumentError;
 use tokio_util::sync::CancellationToken;
+use std::sync::atomic::Ordering;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -40,7 +41,7 @@ struct Args {
     /// Country code. Use this to get country-specific price.
     #[arg(long, default_value="")]
     cc: String,
-    /// Minimal discount that will trigger the monitor.
+    /// Minimal discount that will trigger the monitor (in percent).
     #[arg(short, long)]
     threshold: u8,
     /// How many seconds to wait between check. Should be no less than 2 secs.
@@ -57,13 +58,14 @@ struct Args {
 async fn main() -> steamerror::Result<()> {
     let running = Arc::new(AtomicBool::new(true));
     let r = running.clone();
+    let user_notified = Arc::new(AtomicBool::new(false));
 
     let token = CancellationToken::new();
     let token_handle = token.clone();
 
     ctrlc::set_handler(move || {
         eprintln!("Exiting...");
-        r.store(false, std::sync::atomic::Ordering::SeqCst);
+        r.store(false, Ordering::SeqCst);
         token_handle.cancel();
     }).expect("Error setting signal handler");
 
@@ -76,42 +78,52 @@ async fn main() -> steamerror::Result<()> {
 
     let gamename = get_response_data::<String>(appid, "basic", cc, "name").await?;
 
-    while running.load(std::sync::atomic::Ordering::SeqCst) {
+    while running.load(Ordering::SeqCst) {
         let token = token.clone();
+        let user_notified = user_notified.clone();
         let overview: PriceOverview = serde_json::from_value(get_response_data(appid, "price_overview", cc, "price_overview").await?)
                                      .expect("Error parsing response: price_overview");
 
         if overview.discount_percent >= discount_bound {
-            let msg = format!("DISCOUNT! {gamename} is for sale: {} now instead of {} ({}%)", 
-                        overview.final_formatted, 
-                        overview.initial_formatted,
-                        overview.discount_percent
-            );
+            if !(user_notified.load(Ordering::SeqCst)) {
+                user_notified.store(true, Ordering::SeqCst);
+                let msg = format!("DISCOUNT! {gamename} is for sale: {} now instead of {} ({}%)", 
+                            overview.final_formatted, 
+                            overview.initial_formatted,
+                            overview.discount_percent
+                );
 
-            match args.feedtype {
-                FeedChoice::Telegram => {
-                    let tg = telegram::TelegramSender::new(
-                               &std::env::var("TELEGRAM_API_TOKEN").expect("TELEGRAM_API_TOKEN is not set."), 
-                                std::env::var("TELEGRAM_CHAT_ID")  .expect("TELEGRAM_CHAT_ID is not set.")
-                                                           .parse().expect("Invalid chat id.")
-                    );
+                match args.feedtype {
+                    FeedChoice::Telegram => {
+                        let tg = telegram::TelegramSender::new(
+                                &std::env::var("TELEGRAM_API_TOKEN").expect("TELEGRAM_API_TOKEN is not set."), 
+                                    std::env::var("TELEGRAM_CHAT_ID")  .expect("TELEGRAM_CHAT_ID is not set.")
+                                                            .parse().expect("Invalid chat id.")
+                        );
 
-                    dbg!(std::env::var("TELEGRAM_API_TOKEN").unwrap());
-                    dbg!(std::env::var("TELEGRAM_CHAT_ID").unwrap().parse::<i64>().unwrap());
+                        #[cfg(debug_assertions)]
+                        dbg!(std::env::var("TELEGRAM_API_TOKEN").unwrap());
+                        #[cfg(debug_assertions)]
+                        dbg!(std::env::var("TELEGRAM_CHAT_ID").unwrap().parse::<i64>().unwrap());
 
-                    tg.send_message(msg)?;
-                },
-                FeedChoice::Log => println!("{msg}"),
-            };
+                        tg.send_message(msg)?;
+                    },
+                    FeedChoice::Log => println!("{msg}"),
+                };
+            }
+        } else {
+            user_notified.store(false, Ordering::SeqCst);
         }
 
         let task = tokio::spawn(async move {
             tokio::select! {
                 _ = token.cancelled() => {
-                    dbg!("Cthulu cancels his great slumber...");
+                    #[cfg(debug_assertions)]
+                    dbg!("Cthulhu cancels his great slumber...");
                 }
                 _ = tokio::time::sleep(delay) => {
-                    dbg!("Cthulu still sleeps...");
+                    #[cfg(debug_assertions)]
+                    dbg!("Cthulhu still sleeps...");
                 }
             }
         });
@@ -153,5 +165,9 @@ fn suffix_to_secs(argtime: &str) -> Result<Duration, ArgumentError> {
         _      => return Err(ArgumentError::UnitError),
     };
 
-    Ok(Duration::from_secs(seconds))
+    if seconds >= 2 {
+        Ok(Duration::from_secs(seconds))
+    } else {
+        Err(ArgumentError::DelayError)
+    }
 }

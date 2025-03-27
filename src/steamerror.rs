@@ -48,6 +48,7 @@ impl From<serde_json::Error> for SteamError {
 pub enum ArgumentError {
     ParseError(ParseIntError),
     UnitError,
+    DelayError
 }
 
 impl fmt::Display for ArgumentError {
@@ -55,6 +56,7 @@ impl fmt::Display for ArgumentError {
         match *self {
             ArgumentError::ParseError(..) => write!(f, "Parsing user input failed"),
             ArgumentError::UnitError      => write!(f, "Wrong delay unit specified"),
+            ArgumentError::DelayError     => write!(f, "Specified delay is too short"),
         }
     }
 }
@@ -62,8 +64,8 @@ impl fmt::Display for ArgumentError {
 impl error::Error for ArgumentError {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match *self {
-            ArgumentError::UnitError => None,
             ArgumentError::ParseError(ref pe) => Some(pe),
+            _ => None,
         }
     }
 }
